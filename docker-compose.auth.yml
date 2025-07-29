@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  lightrag-auth:
+    image: hkuds/lightrag:latest
+    container_name: bosch-graph2rag-auth
+    ports:
+      - "${PORT:-9621}:${PORT:-9621}"
+    volumes:
+      # User data persistence
+      - ./users.json:/app/users.json
+      
+      # User workspaces
+      - ./rag_storage:/app/rag_storage
+      - ./inputs:/app/inputs
+      
+      # Configuration
+      - ./.env.auth:/app/.env:ro
+      
+      # Custom scripts
+      - ./lightrag_server_auth.py:/app/lightrag_server_auth.py:ro
+      - ./manage_users.py:/app/manage_users.py:ro
+    environment:
+      # Enable authentication
+      - ENABLE_USER_AUTH=true
+      - TOKEN_SECRET=${TOKEN_SECRET:-change-this-secret-key}
+      
+      # Branding
+      - WEBUI_TITLE=${WEBUI_TITLE:-Bosch Graph2RAG}
+      - WEBUI_DESCRIPTION=${WEBUI_DESCRIPTION:-Secure Knowledge Graph System}
+      
+      # Server config
+      - HOST=0.0.0.0
+      - PORT=${PORT:-9621}
+    command: python lightrag_server_auth.py
+    restart: unless-stopped
+    networks:
+      - graph2rag-network
+
+  # Optional: Nginx for HTTPS
+  nginx-auth:
+    image: nginx:alpine
+    container_name: bosch-graph2rag-nginx
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx-auth.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - lightrag-auth
+    networks:
+      - graph2rag-network
+    profiles:
+      - with-ssl
+
+networks:
+  graph2rag-network:
+    driver: bridge
+
+volumes:
+  user_data:
+    driver: local

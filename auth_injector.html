@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bosch Graph2RAG - Loading...</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .loading {
+            text-align: center;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #c8102e;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        iframe {
+            width: 100%;
+            height: 100vh;
+            border: none;
+            display: none;
+        }
+        .user-bar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            background: #c8102e;
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 10000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            border-bottom-left-radius: 8px;
+        }
+        .logout-btn {
+            background: white;
+            color: #c8102e;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .logout-btn:hover {
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <h2>Loading Bosch Graph2RAG...</h2>
+        <p>Authenticating user...</p>
+    </div>
+    
+    <div id="userBar" class="user-bar" style="display: none;">
+        <span>👤 <strong id="username">User</strong></span>
+        <span>📁 <span id="workspace">Workspace</span></span>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+    
+    <iframe id="mainFrame" src=""></iframe>
+
+    <script>
+        // Get authentication from URL or localStorage
+        const urlParams = new URLSearchParams(window.location.search);
+        const tokenFromUrl = urlParams.get('token');
+        const userFromUrl = urlParams.get('user');
+        
+        // Store token if provided in URL
+        if (tokenFromUrl) {
+            localStorage.setItem('graph2rag_token', tokenFromUrl);
+            localStorage.setItem('graph2rag_username', userFromUrl || 'user');
+            // Clean URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        
+        // Get stored authentication
+        const token = localStorage.getItem('graph2rag_token');
+        const username = localStorage.getItem('graph2rag_username') || 'Anonymous';
+        const workspace = localStorage.getItem('graph2rag_workspace') || `user_${username}`;
+        
+        // Check authentication
+        if (!token) {
+            window.location.href = 'http://localhost:9622/login';
+        } else {
+            // Set user info
+            document.getElementById('username').textContent = username;
+            document.getElementById('workspace').textContent = workspace;
+            
+            // Load main UI in iframe
+            const iframe = document.getElementById('mainFrame');
+            iframe.src = 'http://localhost:9621/webui';
+            
+            // When iframe loads, inject authentication
+            iframe.onload = function() {
+                document.getElementById('loading').style.display = 'none';
+                iframe.style.display = 'block';
+                document.getElementById('userBar').style.display = 'flex';
+                
+                // Try to inject auth into iframe (might be blocked by CORS)
+                try {
+                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    const script = iframeDoc.createElement('script');
+                    script.textContent = `
+                        localStorage.setItem('graph2rag_token', '${token}');
+                        localStorage.setItem('graph2rag_username', '${username}');
+                        localStorage.setItem('graph2rag_workspace', '${workspace}');
+                        
+                        // Override fetch to add auth headers
+                        const originalFetch = window.fetch;
+                        window.fetch = function(...args) {
+                            let [url, config = {}] = args;
+                            if (!config.headers) config.headers = {};
+                            config.headers['Authorization'] = 'Bearer ${token}';
+                            config.headers['X-User'] = '${username}';
+                            config.headers['X-Workspace'] = '${workspace}';
+                            return originalFetch(url, config);
+                        };
+                        
+                        console.log('🔐 Authentication injected for user: ${username}');
+                    `;
+                    iframeDoc.head.appendChild(script);
+                } catch (e) {
+                    console.log('Could not inject auth into iframe (CORS), but auth is stored in localStorage');
+                }
+            };
+        }
+        
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('graph2rag_token');
+                localStorage.removeItem('graph2rag_username');
+                localStorage.removeItem('graph2rag_workspace');
+                window.location.href = 'http://localhost:9622/login';
+            }
+        }
+    </script>
+</body>
+</html>

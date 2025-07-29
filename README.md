@@ -9,6 +9,14 @@ A powerful knowledge graph RAG system that combines traditional RAG approaches w
 - Docker & Docker Compose (for Docker installation)
 - Azure OpenAI or Ollama for LLM/Embeddings
 
+### 🔐 Authentication Support (NEW!)
+- **User Management**: Login with username/password
+- **Isolated Workspaces**: Each user has their own document storage
+- **Secure Access**: JWT-based authentication
+- **Easy Setup**: Pre-configured test users
+- **Web UI Integration**: Seamless login flow
+- See [AUTH_README.md](AUTH_README.md) for detailed setup
+
 ### Configuration
 
 1. Copy `.env.sample` to `.env`:
@@ -73,16 +81,46 @@ python -m lightrag.api.lightrag_server
 ./start_local_server.sh ollama
 ```
 
+**With Authentication (Recommended):**
+```bash
+# Quick start with authentication
+python integrated_auth_server.py  # Port 9622 - Login portal
+python -m lightrag.api.lightrag_server  # Port 9621 - Main server
+
+# Access at: http://localhost:9622
+# Default users: admin/admin123, demo/demo123
+```
+
+**Advanced Authentication Setup:**
+```bash
+# Configure custom users
+cp .env.auth.sample .env.auth
+nano .env.auth
+
+# Use authentication startup script
+./start_auth_server.sh
+```
+
 ## 📁 Project Structure
 ```
 LightRAG/
-├── .env.sample          # Configuration template
-├── .env.azure           # Azure configuration (create from .env.sample)
-├── .env.ollama          # Ollama configuration (create from .env.sample)
-├── inputs/              # Document upload directory
-├── rag_storage/         # Knowledge graph storage
-├── docker-compose.yml   # Docker configuration
-└── README.md           # This file
+├── .env.sample                 # Configuration template
+├── .env.auth.sample           # Authentication config template
+├── .env.azure                 # Azure configuration
+├── .env.ollama                # Ollama configuration
+├── AUTH_README.md             # Authentication documentation
+├── integrated_auth_server.py  # Login portal (port 9622)
+├── manage_users.py            # User management CLI
+├── inputs/                    # Document upload directory
+├── rag_storage/              # Knowledge graph storage
+├── users.json                # User database (auto-created)
+├── docker-compose.yml        # Docker configuration
+├── docker-compose.auth.yml   # Docker with auth
+└── lightrag/
+    └── api/
+        ├── user_manager.py       # User system
+        ├── auth_routes.py        # Auth API
+        └── workspace_middleware.py # Workspace isolation
 ```
 
 ## 🔧 Environment Variables
