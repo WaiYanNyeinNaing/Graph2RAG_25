@@ -1,4 +1,4 @@
-# Bosch Graph2RAG
+# Graph2RAG
 
 A powerful knowledge graph RAG system that combines traditional RAG approaches with graph-based knowledge representation.
 
