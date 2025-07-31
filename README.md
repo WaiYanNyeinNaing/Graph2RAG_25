@@ -134,7 +134,7 @@ Key variables to configure in `.env`:
 | `LLM_BINDING_HOST` | LLM endpoint | Azure endpoint or `http://localhost:11434` |
 | `LLM_BINDING_API_KEY` | API key | Your Azure API key (empty for Ollama) |
 | `EMBEDDING_MODEL` | Embedding model | `text-embedding-3-large` or `nomic-embed-text` |
-| `WEBUI_TITLE` | UI branding | `Bosch Graph2RAG` |
+| `WEBUI_TITLE` | UI branding | `My Graph2RAG` |
 
 ## 📚 Usage
 
